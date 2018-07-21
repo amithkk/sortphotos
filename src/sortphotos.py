@@ -1,10 +1,11 @@
-#!/usr/bin/env python
+    #!/usr/bin/env python
 # encoding: utf-8
 """
 sortphotos.py
 
 Created on 3/2/2013
 Copyright (c) S. Andrew Ning. All rights reserved.
+
 
 """
 
@@ -27,7 +28,6 @@ import locale
 locale.setlocale(locale.LC_ALL, '')
 
 exiftool_location = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'Image-ExifTool', 'exiftool')
-
 
 # -------- convenience methods -------------
 
@@ -224,7 +224,7 @@ class ExifTool(object):
 
 
 
-def sortPhotos(src_dir, dest_dir, sort_format, rename_format, recursive=False,
+def sortPhotos(src_dir, dest_dir, sort_format, rename_format, unknown_foldername, recursive=False,
         copy_files=False, test=False, remove_duplicates=True, day_begins=0,
         additional_groups_to_ignore=['File'], additional_tags_to_ignore=[],
         use_only_groups=None, use_only_tags=None, verbose=True, keep_filename=False):
@@ -335,13 +335,6 @@ def sortPhotos(src_dir, dest_dir, sort_format, rename_format, recursive=False,
             sys.stdout.write('[%-20s] %d of %d ' % ('='*numdots, idx+1, num_files))
             sys.stdout.flush()
 
-        # check if no valid date found
-        if not date:
-            if verbose:
-                print('No valid dates were found using the specified tags.  File will remain where it is.')
-                print()
-                # sys.stdout.flush()
-            continue
 
         # ignore hidden files
         if os.path.basename(src_file).startswith('.'):
@@ -354,12 +347,18 @@ def sortPhotos(src_dir, dest_dir, sort_format, rename_format, recursive=False,
             print('Corresponding Tags: ' + ', '.join(keys))
 
         # early morning photos can be grouped with previous day (depending on user setting)
-        date = check_for_early_morning_photos(date, day_begins)
+        if date:
+            date = check_for_early_morning_photos(date, day_begins)
+            # create folder structure
+            dir_structure = date.strftime(sort_format)
+            dirs = dir_structure.split('/')
+        else:
+            #In case date was not found in EXIF Data
+            if verbose:
+                print('No valid dates were found using the specified tags.  File will be moved to "',unknown_foldername,'"')
+                print()
+            dirs = [unknown_foldername]
 
-
-        # create folder structure
-        dir_structure = date.strftime(sort_format)
-        dirs = dir_structure.split('/')
         dest_file = dest_dir
         for thedir in dirs:
             dest_file = os.path.join(dest_file, thedir)
@@ -464,6 +463,9 @@ def main():
                         help="rename file using format codes \n\
     https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior. \n\
     default is None which just uses original filename")
+    parser.add_argument('--unknown-dir', type=str, default="Unknown",
+                        help="Specify folder name to put photos into that have no valid date information \n\
+    default is 'Unknown'")
     parser.add_argument('--keep-filename', action='store_true',
                         help='In case of duplicated output filenames an increasing number and the original file name will be appended',
                         default=False)
@@ -493,7 +495,7 @@ def main():
     # parse command line arguments
     args = parser.parse_args()
 
-    sortPhotos(args.src_dir, args.dest_dir, args.sort, args.rename, args.recursive,
+    sortPhotos(args.src_dir, args.dest_dir, args.sort, args.rename, args.unknown_dir, args.recursive, 
         args.copy, args.test, not args.keep_duplicates, args.day_begins,
         args.ignore_groups, args.ignore_tags, args.use_only_groups,
         args.use_only_tags, not args.silent, args.keep_filename)

@@ -1,29 +1,44 @@
 # SortPhotos
 
+This is a forked version of the original repository with the `--unknown-dir` option and has a distribution on PyPi
+
 # Description
 
 SortPhotos is a Python script that organizes photos into folders by date and/or time (year, year/month, year/month/day, or other custom formats).  If you're like me then your growing collection of files are contained in a bunch of folders, some with a date like "Sep 2010", and others which names like "Camping Trip".  SortPhotos takes this collection of folders and files and reorganizes them into a hierarchy of folders by almost any custom date/time format (by default it is by year then month).  It will work with any file, but works best with image and video files that contain EXIF or other metadata formats because that stays with the file even if the files are modified.  The script is also useful for transferring files from your camera into your collection of nicely organized photos.
 
 ![Example](example.png)
 
+
+# Install
+
+This script can be installed from PyPi with
+
+    pip install sortphotos
+
 # Usage
 
 SortPhotos is intended to be used primarily from the command line.  To see all the options, invoke help
 
-    python sortphotos.py -h
+    sortphotos -h
 
 The simplest usage is to specify a source directory (the directory where your mess of files is currently located) and a destination directory (where you want the files and directories to go).  By default the source directory it is not searched recursively but that can changed with a flag as discussed below.
 
-    python sortphotos.py /Users/Me/MessyDirectory /Users/Me/Pictures
+    sortphotos /Users/Me/MessyDirectory /Users/Me/Pictures
 
 ## copy rather than move
 There are several options that can be invoked.  For example the default behavior is to move files from your source directory to your destination directory.  Note that it is  **much** faster to move the files rather than copy them (especially if videos are involved).  However, if you want to copy this is done with the ``-c`` or ``--copy`` flag.
 
-    python sortphotos.py -c /source /destination
+    sortphotos -c /source /destination
 
 ## search source directory recursively
 
 By default, only the top level of the source directory is searched for files.  This is useful if you dump photos into your top directory and then want them to sort.  If you want to search recursively, use the ``-r`` or ``--recursive`` flag.
+
+## move/copy files with no valid date information
+
+By default, files with no valid date information is moved into a subfolder titled "Unknown" in the destination directory, the name of this director can be changed by using the ``--unknown-dir`` flag
+
+     sortphotos -c /source /destination --unknown-dir "SomeDir"
 
 ## silence progress updates
 
@@ -36,15 +51,15 @@ If you just want to simulate what is going to happen with your command use the `
 ## sort in directories
 By default folders are sorted by year then month, with both the month number and name.  So for example if cool_picture.jpg was taken on June 1, 2010 the resulting directory hierarchy will look like: 2010 > 06-Jun > cool_picture.jpg.  However, you can customize the sorting style almost anyway you want.  The script takes an optional argument ``-s`` or ``--sort``, which accepts a format string using the conventions described [here](https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior).  To separate by subdirectory, just use a forward slash (even if you are on Windows).    So for example, the default sorting behavior (2010/06-Jun) is equivalent to:
 
-    python sortphotos.py --sort %Y/%m-%b
+    sortphotos --sort %Y/%m-%b
 
  Or you could sort just by month, but with the month full name (June):
 
-    python sortphotos.py --sort %B
+    sortphotos --sort %B
 
 Or you can sort by year without century, then week number, then an abbreviated day of the week (10/23/Sun)
 
-    python sortphotos.py --sort %y/%W/%a
+    sortphotos --sort %y/%W/%a
 
 The possibilities go on and on.
 
@@ -52,7 +67,7 @@ The possibilities go on and on.
 
 You can setup the script to automatically rename your files according to same convention.  This uses the same conventions for directory sorting and are described [here](https://docs.python.org/2/library/datetime.html#strftime-and-strptime-behavior).  For example you could rename all your files to contain the year, month, day, hour, and minute by using
 
-    python sortphotos.py --rename %Y_%m%d_%H%M
+    sortphotos --rename %Y_%m%d_%H%M
 
 This would create files like: 2003_1031_1544.jpg.  By default the script keeps the original name and the original extension.  In all cases a unique digit in appended in the case of name collisions.  
 
@@ -60,29 +75,29 @@ This would create files like: 2003_1031_1544.jpg.  By default the script keeps t
 
 sortphotos.py uses Exiftool.py to search through all metadata that has date information and uses the metadata with the oldest date (which may be more than one metadata tag).  For example, if "EXIF:CreateDate" is the tag with the oldest date it is automatically used.  There are several filters you can use to restrict which grouops/tags to search through for the oldest date.  All the groups/tags are described [here](http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/) (with a few extra ones [here](http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/Extra.html)). One common usage is to ignore all file metadata which is not persistent (i.e., FileModifyDate, FileCreateDate, etc.).  This is accomplished with:
 
-    python sortphotos.py source destination --ignore-groups File
+    sortphotos source destination --ignore-groups File
 
 This would search through all other groups (EXIF, JPG, etc.) looking for relevant date tags and keep the oldest, but would not use File timestamps.  If there is no metadata (except file timestamp data) then the file will just stay where it is.  You could also specify specific tags to ignore
 
-    python sortphotos.py source destination --ignore-tags File:FileModifyDate File:FileCreateDate
+    sortphotos source destination --ignore-tags File:FileModifyDate File:FileCreateDate
 
 Alternatively you could specify the complete set of groups that you want to use
 
-    python sortphotos.py source destination --use-only-groups EXIF XMP IPTC
+    sortphotos source destination --use-only-groups EXIF XMP IPTC
 
 and this would only look for date tags in EXIF, XMP, IPTC.  Or you could restrict to a specific set of tags
 
-    python sortphotos.py source destination --use-only-tags EXIF:CreateDate EXIF:DateTimeOriginal
+    sortphotos source destination --use-only-tags EXIF:CreateDate EXIF:DateTimeOriginal
 
 <!-- ## selected what to sort by (defining the tags)
 
 sortphotos.py takes a list of tags you want to search for.  This list should be ordered in terms of precedence.  The default list is
 
-    python sortphotos.py source dest --tags CreationDate DateTimeOriginal DateTimeCreated CreateDate DateCreated FileCreateDate FileModifyDate
+    sortphotos source dest --tags CreationDate DateTimeOriginal DateTimeCreated CreateDate DateCreated FileCreateDate FileModifyDate
 
 The first five are different EXIF data tags, and the last two are file stamp data.  This means if any of the EXIF data is available for a given file, the script will sort the file by that EXIF data, but if none of the options given are available it will fall back on file timestamp data.  If you want to only sort using EXIF data and have any files without EXIF data left behind for manual sorting, you could specify something like
 
-    python sortphotos.py source dest --tags CreationDate DateTimeOriginal DateTimeCreated CreateDate DateCreated
+    sortphotos source dest --tags CreationDate DateTimeOriginal DateTimeCreated CreateDate DateCreated
 
 These five are commonly used tags, but there are a wide range of EXIF and other tags available (listed [here](http://www.sno.phy.queensu.ca/~phil/exiftool/TagNames/index.html)).  For the specific file types you use, you should rearrange or add the corresponding EXIF tags you need.   -->
 
@@ -90,24 +105,24 @@ These five are commonly used tags, but there are a wide range of EXIF and other 
 ## duplicate removal
 SortPhotos will *always* check to make sure something with the same file name doesn't already exist where it's trying to write, so that you don't unintentionally overwrite a file. It this occurs it will append a number on the end of the file.  So for example if photo.jpg was taken on June 1, 2010 but 2010 > June > photo.jpg already exists then the new file will be moved as photo_1.jpg and so on.  SortPhotos will go one step further and if it finds a file of the same name, it will then run a file compare to see if the files are actually the same.  If they are *exactly* the same, it will just skip the copy (or move) operation.  This will prevent you from having duplicate files.  However you have the option of turning this off (not the name comparison, that will always happen, just the weeding out of duplicates).  This option would be useful, for example, if you are copying over a bunch of new photos that you are sure don't already exist in your organized collection of photos.  Invoke the option ``--keep-duplicates`` in order to skip duplicate detection.
 
-    python sortphotos.py --keep-duplicates /source /destination
+    sortphotos --keep-duplicates /source /destination
 
 <!-- ## choose which file types to search for
 You can restrict what types of files SortPhotos looks for in your source directory.  By default it only looks for the most common photo and video containers ('jpg', 'jpeg', 'tiff', 'arw', 'avi', 'mov', 'mp4', 'mts').  You can change this behavior through the ``extensions`` argument.  Note that it is not case sensitive so if you specify 'jpg' as an extension it will search for both jpg and JPG files or even jPg files.  For example say you want to copy and sort only the *.gif and *.avi files you would call
 
-    python sortphotos.py /source /destination --extensions gif avi
+    sortphotos /source /destination --extensions gif avi
 
 If you only want to sort the files that (potentially) have EXIF data then
 
-    python sortphotos.py /source /destination --extensions jpg tiff
+    sortphotos /source /destination --extensions jpg tiff
 
 You may want to use this for files that aren't photos or videos at all
 
-    python sortphotos.py /source /destination --extensions docx xlsx pptx
+    sortphotos /source /destination --extensions docx xlsx pptx
 
 To sort every possible file type
 
-    python sortphotos.py /source /destination --extensions *
+    sortphotos /source /destination --extensions *
 
 However, this option will copy even hidden files like .DS_Store. -->
 
@@ -143,6 +158,11 @@ and you should see the Agent listed (I grep the results because you will typical
 SortPhotos grabs EXIF data from the photos/videos using the very excellent [ExifTool](http://www.sno.phy.queensu.ca/~phil/exiftool/) written by Phil Harvey.
 
 # ChangeLog (of major changes)
+
+### 7/21/2018
+
+- Add --unknown-dir option to sort files with no valid date information
+- Package published to PyPi
 
 ### 7/17/2015
 
@@ -187,6 +207,7 @@ Previous features that were in sortphotos.py but have not yet been reincorporate
 
 # License
 
-Copyright (c) 2013, S. Andrew Ning.  All rights reserved.
+Original Script Copyright (c) 2013, S. Andrew Ning.  All rights reserved.
+Modified fork of the script created by Amith K K 
 
 All code is licensed under [The MIT License](http://opensource.org/licenses/mit-license.php).
